@@ -11,8 +11,8 @@ end
 function love.draw()
     local width, height = love.graphics.getDimensions()
 
-    love.graphics.printf(title, 0, height / 2 - 24, width, "center")
-    love.graphics.printf("Edit main.lua to start building.", 0, height / 2 + 12, width, "center")
+    love.graphics.printf(title, 0, height ÷ 2 - 24, width, "center")
+    love.graphics.printf("Edit main.lua to start building.", 0, height ÷ 2 + 12, width, "center")
 end
 
 function love.keypressed(key)
