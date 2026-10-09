@@ -1,7 +1,7 @@
 name: Division source and unchanged LÖVE runtimes
 on:
   push:
-    branches: [main, source/division-glyph-luajit]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -36,6 +36,7 @@ jobs:
         with:
           name: game-stage
           path: build/game
+          include-hidden-files: true
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
@@ -115,7 +116,7 @@ jobs:
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"'
       - name: Build both maintained APK variants without release publication
         working-directory: android-build
-        run: ./gradlew assembleEmbedNoRecordRelease assembleEmbedNoRecordDebug
+        run: ./gradlew -Papp.application_id=org.isomorphisms.game.dev -Papp.name_byte_array=71,97,109,101 -Papp.orientation=landscape -Papp.version_code="$GITHUB_RUN_NUMBER" -Papp.version_name=division-source assembleEmbedNoRecordRelease assembleEmbedNoRecordDebug
       - uses: actions/upload-artifact@v4
         with:
           name: game-apk-qualification

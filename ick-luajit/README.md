@@ -36,12 +36,16 @@ the installed stock LÖVE. `probe` prepares a real-LÖVE drawing test. The
 engine archive with the declared NDK and runs callback and opposite-frame
 rejection tests. ARM probes use QEMU, not a claimed physical Android device.
 
-Local qualification on 2026-10-09 passed both source compilers, both stock
+The [dated receipt](qualification-2026-10-09.tsv) records local compiler,
+bytecode and runtime artifact identities. Local qualification passed both source compilers, both stock
 frame runtimes, byte-for-byte bytecode controls, all three original Android
 archives, callback geometry and opposite-frame rejection. Local archive
 harnesses used NDK r27c API 21, while CI retains the application's existing
 NDK 25.2.9519653 and separately builds its APK. Firmware/device or Play Store
-acceptance is not inferred from these tests. No release is published by PR CI.
+acceptance is not inferred from these tests. The actual desktop LÖVE 11.5
+drawing path also passed with SDL offscreen and Mesa software rendering.
+PR APK checks retain the production package identity and display name.
+No release is published by PR CI.
 
 `reference.lua`, the LuaJIT patch context, and the stock-engine drawing oracle
 intentionally retain ASCII division as compatibility controls.
