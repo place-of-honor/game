@@ -4,10 +4,12 @@ A small game project built with [LÖVE](https://love2d.org/).
 
 ## Run locally
 
-From the repository directory:
+The source uses `÷`; first build the dual-format bytecode package with the
+[pinned producer](ick-luajit/README.md). From the repository directory, with
+`ICK` and `LOVE_ANDROID_SOURCE` set to those qualified tools:
 
 ```sh
-love .
+make -f ick-luajit/Makefile run
 ```
 
 ## Put it on an Android phone or tablet
@@ -31,5 +33,6 @@ APK releases use the same development signing key, so a newer release can be ins
 - `main.lua` — game callbacks and game code
 - `conf.lua` — window and application configuration
 - `assets/` — images, sounds, fonts, maps, and other game data
+- `ick-luajit/` — the pinned source compiler, bytecode packaging and runtime checks
 
 LÖVE calls `love.load` once at startup, `love.update(dt)` every frame for game logic, and `love.draw()` every frame for rendering.

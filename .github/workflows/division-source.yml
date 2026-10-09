@@ -1,0 +1,123 @@
+name: Division source and unchanged LÖVE runtimes
+on:
+  push:
+    branches: [main, source/division-glyph-luajit]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: love2d/love-android
+          ref: 55feb38fa144f4734c26742389f279fb07d955c0
+          path: android-build
+          persist-credentials: false
+      - id: ick
+        uses: isomorphisms/ai-ci/ick-host@4ea071a96239f3a29ca6d98454feb59947d87cfe
+      - name: Build and qualify both frame formats
+        env:
+          ICK: ${{ steps.ick.outputs.compiler }}
+          ICK_LINK_FLAGS: ${{ steps.ick.outputs.link_flags }}
+        run: make -f ick-luajit/Makefile package probe LOVE_ANDROID_SOURCE="$GITHUB_WORKSPACE/android-build"
+      - name: Install the unchanged desktop engine
+        run: sudo apt-get update && sudo apt-get install -y love xvfb xauth
+      - name: Run the real LÖVE drawing callbacks
+        env:
+          ALSOFT_DRIVERS: 'null'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: timeout 45s xvfb-run -a love build/love-probe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-stage
+          path: build/game
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-love
+          path: dist/game.love
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bytecode-qualification
+          path: |
+            build/ick-luajit/receipt.tsv
+            build/ick-luajit/qualified-*
+            build/ick-luajit/stock-source-rejection-*.log
+          if-no-files-found: error
+  android-archive:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [armeabi-v7a, arm64-v8a, x86_64]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: love2d/love-android
+          ref: 55feb38fa144f4734c26742389f279fb07d955c0
+          path: android-build
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-stage
+          path: build/game
+      - name: Install the original NDK and QEMU runtimes
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;25.2.9519653'
+          sudo apt-get update && sudo apt-get install -y qemu-user
+      - id: ick
+        uses: isomorphisms/ai-ci/ick-android@4ea071a96239f3a29ca6d98454feb59947d87cfe
+        with:
+          abi: ${{ matrix.abi }}
+          ndk: /usr/local/lib/android/sdk/ndk/25.2.9519653
+      - name: Execute the actual archive linked by the APK
+        env:
+          ICK: ${{ steps.ick.outputs.compiler }}
+          ICK_ANDROID: ${{ steps.ick.outputs.compiler }}
+          ICK_ANDROID_FLAGS: ${{ steps.ick.outputs.target_flags }}
+          ABI: ${{ matrix.abi }}
+        run: make -f ick-luajit/Makefile qualify-archive LOVE_ANDROID_SOURCE="$GITHUB_WORKSPACE/android-build" NDK="$ANDROID_HOME/ndk/25.2.9519653"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive-${{ matrix.abi }}
+          path: build/ick-luajit/archive-probe-*.sha256
+          if-no-files-found: error
+  apk:
+    needs: [package, android-archive]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: love2d/love-android
+          ref: 55feb38fa144f4734c26742389f279fb07d955c0
+          path: android-build
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-love
+          path: android-build/app/src/embed/assets
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install the original Android requirements
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"'
+      - name: Build both maintained APK variants without release publication
+        working-directory: android-build
+        run: ./gradlew assembleEmbedNoRecordRelease assembleEmbedNoRecordDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-apk-qualification
+          path: android-build/app/build/outputs/apk/embedNoRecord/**/*.apk
+          if-no-files-found: error
