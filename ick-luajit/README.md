@@ -49,3 +49,9 @@ No release is published by PR CI.
 
 `reference.lua`, the LuaJIT patch context, and the stock-engine drawing oracle
 intentionally retain ASCII division as compatibility controls.
+
+## BACKLOG-REPAIR-02 qualification repair
+
+The earlier 37891509152 result used GitHub's default synthetic merge checkout and mutable upload/download/Java action tags. It remains historical integration/runtime evidence and is not promoted to an explicit PR-head receipt. Both primary game source checkouts now bind the exact PR head; every remote action in the qualification and release workflows has an inspected immutable full commit pin. The unchanged upstream LÖVE Android source keeps its own fixed source pin and established foreign build path. No candidate algorithm, bytecode oracle, negative control, target ABI, signer, package identity or release trigger is changed.
+
+The fixed Make producer requires a nonempty qualified ICK, compiles its literal-syntax proof, verifies the exact LuaJIT source tree, and routes all maintained C through that named executable. Android archive harness compilation and NDK assembly/link remain distinct declared stages; a third-party engine build is not evidence that owned C used a stock compiler. Fresh exact-head hosted desktop, both frame formats, all three real archive callbacks and APK checks must pass before merge. Physical replacement installation and store publication remain NOT_RUN.
