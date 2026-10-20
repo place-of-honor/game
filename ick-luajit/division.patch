@@ -1,0 +1,78 @@
+--- a/src/lj_lex.c
++++ b/src/lj_lex.c
+@@ -62,9 +62,24 @@
+ /* Get next character. */
+ static LJ_AINLINE LexChar lex_next(LexState *ls)
+ {
++  if (ls->haspeek) {
++    ls->haspeek = 0;
++    return (ls->c = ls->peekc);
++  }
+   return (ls->c = ls->p < ls->pe ? (LexChar)(uint8_t)*ls->p++ : lex_more(ls));
+ }
+ 
++/* Peek only at an operator candidate; strings and comments remain raw bytes. */
++static LJ_AINLINE int lex_isdivision(LexState *ls)
++{
++  if (ls->c != 0xc3) return 0;
++  if (!ls->haspeek) {
++    ls->peekc = ls->p < ls->pe ? (LexChar)(uint8_t)*ls->p++ : lex_more(ls);
++    ls->haspeek = 1;
++  }
++  return ls->peekc == 0xb7;
++}
++
+ /* Save character. */
+ static LJ_AINLINE void lex_save(LexState *ls, LexChar c)
+ {
+@@ -99,8 +114,8 @@
+   lj_assertLS(lj_char_isdigit(ls->c), "bad usage");
+   if ((c = ls->c) == '0' && (lex_savenext(ls) | 0x20) == 'x')
+     xp = 'p';
+-  while (lj_char_isident(ls->c) || ls->c == '.' ||
+-	 ((ls->c == '-' || ls->c == '+') && (c | 0x20) == xp)) {
++  while (!lex_isdivision(ls) && (lj_char_isident(ls->c) || ls->c == '.' ||
++	 ((ls->c == '-' || ls->c == '+') && (c | 0x20) == xp))) {
+     c = ls->c;
+     lex_savenext(ls);
+   }
+@@ -292,6 +307,11 @@
+ {
+   lj_buf_reset(&ls->sb);
+   for (;;) {
++    if (lex_isdivision(ls)) {
++      lex_next(ls);
++      lex_next(ls);
++      return '/';
++    }
+     if (lj_char_isident(ls->c)) {
+       GCstr *s;
+       if (lj_char_isdigit(ls->c)) {  /* Numeric literal. */
+@@ -301,7 +321,7 @@
+       /* Identifier or reserved word. */
+       do {
+ 	lex_savenext(ls);
+-      } while (lj_char_isident(ls->c));
++      } while (lj_char_isident(ls->c) && !lex_isdivision(ls));
+       s = lj_parse_keepstr(ls, ls->sb.b, sbuflen(&ls->sb));
+       setstrV(ls->L, tv, s);
+       if (s->reserved > 0)  /* Reserved word? */
+@@ -411,6 +431,7 @@
+   ls->linenumber = 1;
+   ls->lastline = 1;
+   ls->endmark = 0;
++  ls->haspeek = 0;
+   lex_next(ls);  /* Read-ahead first char. */
+   if (ls->c == 0xef && ls->p + 2 <= ls->pe && (uint8_t)ls->p[0] == 0xbb &&
+       (uint8_t)ls->p[1] == 0xbf) {  /* Skip UTF-8 BOM (if buffered). */
+--- a/src/lj_lex.h
++++ b/src/lj_lex.h
+@@ -57,6 +57,8 @@
+   const char *p;	/* Current position in input buffer. */
+   const char *pe;	/* End of input buffer. */
+   LexChar c;		/* Current character. */
++  LexChar peekc;		/* One raw byte of reader lookahead. */
++  int haspeek;		/* The lookahead byte may cross a reader chunk. */
+   LexToken tok;		/* Current token. */
+   LexToken lookahead;	/* Lookahead token. */
+   SBuf sb;		/* String buffer for tokens. */
