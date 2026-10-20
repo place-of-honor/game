@@ -12,6 +12,9 @@ jobs:
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: love2d/love-android
@@ -32,18 +35,18 @@ jobs:
           ALSOFT_DRIVERS: 'null'
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: timeout 45s xvfb-run -a love build/love-probe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: game-stage
           path: build/game
           include-hidden-files: true
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: game-love
           path: dist/game.love
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: bytecode-qualification
           path: |
@@ -61,13 +64,16 @@ jobs:
         abi: [armeabi-v7a, arm64-v8a, x86_64]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: love2d/love-android
           ref: 55feb38fa144f4734c26742389f279fb07d955c0
           path: android-build
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: game-stage
           path: build/game
@@ -87,7 +93,7 @@ jobs:
           ICK_ANDROID_FLAGS: ${{ steps.ick.outputs.target_flags }}
           ABI: ${{ matrix.abi }}
         run: make -f ick-luajit/Makefile qualify-archive LOVE_ANDROID_SOURCE="$GITHUB_WORKSPACE/android-build" NDK="$ANDROID_HOME/ndk/25.2.9519653"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: archive-${{ matrix.abi }}
           path: build/ick-luajit/archive-probe-*.sha256
@@ -104,11 +110,11 @@ jobs:
           path: android-build
           submodules: recursive
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: game-love
           path: android-build/app/src/embed/assets
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
           distribution: temurin
           java-version: '17'
@@ -117,7 +123,7 @@ jobs:
       - name: Build both maintained APK variants without release publication
         working-directory: android-build
         run: ./gradlew -Papp.application_id=org.isomorphisms.game.dev -Papp.name_byte_array=71,97,109,101 -Papp.orientation=landscape -Papp.version_code="$GITHUB_RUN_NUMBER" -Papp.version_name=division-source assembleEmbedNoRecordRelease assembleEmbedNoRecordDebug
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: game-apk-qualification
           path: android-build/app/build/outputs/apk/embedNoRecord/**/*.apk
